@@ -28,10 +28,10 @@ def index():
     message = {
         "message": "Welcome to the XML to JSON API!",
         "usage": "Use /convert endpoint to convert XML to JSON.",
-        "info": "Use /info endpoint to get information about the XML structure.",
+        "categories": "Use /categories endpoint to get category information.",
         "examples": {
             "convert": "/convert?url=https://your-xml-url.com",
-            "info": "/info?url=https://your-xml-url.com"
+            "categories": "/categories?url=https://your-xml-url.com"
         }
     }
     return Response(json.dumps(message, indent=4), content_type="application/json")
@@ -52,7 +52,7 @@ def convert_to_json():
             }
             return Response(json.dumps(error_message, indent=4), content_type="application/json", status=400)
 
-        # Decode and sanitize content
+        # Decode content and sanitize it
         xml_content = response.content.decode('utf-8', errors='ignore')
         xml_content = re.sub(r'[^\x09\x0A\x0D\x20-\x7F]+', '', xml_content)
 
@@ -72,38 +72,42 @@ def convert_to_json():
         }
         return Response(json.dumps(error_message, indent=4), content_type="application/json", status=500)
 
-@app.route('/info', methods=['GET'])
-def get_xml_info():
-    """Endpoint to get information about the XML structure."""
+@app.route('/categories', methods=['GET'])
+def get_categories_info():
+    """Endpoint to get information about categories and their object counts."""
     xml_url = request.args.get('url', DEFAULT_XML_URL)
     try:
         response = requests.get(xml_url)
         response.raise_for_status()
 
-        # Validate Content-Type header
-        if not response.headers.get('Content-Type', '').startswith('application/xml'):
-            error_message = {
-                "error": "The response is not valid XML.",
-                "content": response.text
-            }
-            return Response(json.dumps(error_message, indent=4), content_type="application/json", status=400)
-
-        # Decode and sanitize content
+        # Decode content and sanitize it
         xml_content = response.content.decode('utf-8', errors='ignore')
         xml_content = re.sub(r'[^\x09\x0A\x0D\x20-\x7F]+', '', xml_content)
 
-        # Parse XML and get root
+        # Parse the XML content
         root = ET.fromstring(xml_content)
 
-        # Gather information about the XML
-        primary_object_count = len(root)
-        primary_object_tags = list(set(child.tag for child in root))
-        info = {
-            "primary_object_count": primary_object_count,
-            "primary_object_tags": primary_object_tags
-        }
+        # Dictionary to hold category counts
+        category_counts = {}
 
-        return Response(json.dumps(info, indent=4), content_type="application/json")
+        # Iterate through each 'Object' in the XML
+        for obj in root.findall('.//Object'):
+            # Find the category of the object
+            category = obj.find('Category')
+            if category is not None and category.text:
+                category_name = category.text.strip()
+                if category_name in category_counts:
+                    category_counts[category_name] += 1
+                else:
+                    category_counts[category_name] = 1
+
+        # Convert the category counts to a list of dictionaries
+        categories_info = [
+            {"category": name, "object_count": count}
+            for name, count in category_counts.items()
+        ]
+
+        return Response(json.dumps(categories_info, indent=4), content_type="application/json")
 
     except requests.exceptions.RequestException as e:
         error_message = {"error": str(e)}
