@@ -28,18 +28,19 @@ def index():
     message = {
         "message": "Welcome to the XML to JSON API!",
         "usage": "Use /convert endpoint to convert XML to JSON.",
-        "example": "/convert?url=https://your-xml-url.com"
+        "info": "Use /info endpoint to get information about the XML structure.",
+        "examples": {
+            "convert": "/convert?url=https://your-xml-url.com",
+            "info": "/info?url=https://your-xml-url.com"
+        }
     }
     return Response(json.dumps(message, indent=4), content_type="application/json")
 
 @app.route('/convert', methods=['GET'])
 def convert_to_json():
     """Endpoint to convert XML to JSON."""
-    # Use default XML URL or override with query parameter
     xml_url = request.args.get('url', DEFAULT_XML_URL)
-    
     try:
-        # Fetch the XML data
         response = requests.get(xml_url)
         response.raise_for_status()
 
@@ -51,29 +52,64 @@ def convert_to_json():
             }
             return Response(json.dumps(error_message, indent=4), content_type="application/json", status=400)
 
-        # Decode content and sanitize it
+        # Decode and sanitize content
         xml_content = response.content.decode('utf-8', errors='ignore')
-        xml_content = re.sub(r'[^\x09\x0A\x0D\x20-\x7F]+', '', xml_content)  # Remove invalid characters
+        xml_content = re.sub(r'[^\x09\x0A\x0D\x20-\x7F]+', '', xml_content)
 
-        # Debug: Return raw content for debugging purposes
-        if request.args.get('debug') == 'true':
-            debug_message = {"raw_content": xml_content}
-            return Response(json.dumps(debug_message, indent=4), content_type="application/json")
-
-        # Parse the XML content
         root = ET.fromstring(xml_content)
         json_data = xml_to_dict(root)
 
-        # Return the parsed JSON data
         return Response(json.dumps(json_data, indent=4), content_type="application/json")
 
     except requests.exceptions.RequestException as e:
-        # Handle request errors (e.g., connection issues)
         error_message = {"error": str(e)}
         return Response(json.dumps(error_message, indent=4), content_type="application/json", status=500)
 
     except ET.ParseError as e:
-        # Handle XML parsing errors
+        error_message = {
+            "error": f"XML Parsing Error: {e}",
+            "content": xml_content
+        }
+        return Response(json.dumps(error_message, indent=4), content_type="application/json", status=500)
+
+@app.route('/info', methods=['GET'])
+def get_xml_info():
+    """Endpoint to get information about the XML structure."""
+    xml_url = request.args.get('url', DEFAULT_XML_URL)
+    try:
+        response = requests.get(xml_url)
+        response.raise_for_status()
+
+        # Validate Content-Type header
+        if not response.headers.get('Content-Type', '').startswith('application/xml'):
+            error_message = {
+                "error": "The response is not valid XML.",
+                "content": response.text
+            }
+            return Response(json.dumps(error_message, indent=4), content_type="application/json", status=400)
+
+        # Decode and sanitize content
+        xml_content = response.content.decode('utf-8', errors='ignore')
+        xml_content = re.sub(r'[^\x09\x0A\x0D\x20-\x7F]+', '', xml_content)
+
+        # Parse XML and get root
+        root = ET.fromstring(xml_content)
+
+        # Gather information about the XML
+        primary_object_count = len(root)
+        primary_object_tags = list(set(child.tag for child in root))
+        info = {
+            "primary_object_count": primary_object_count,
+            "primary_object_tags": primary_object_tags
+        }
+
+        return Response(json.dumps(info, indent=4), content_type="application/json")
+
+    except requests.exceptions.RequestException as e:
+        error_message = {"error": str(e)}
+        return Response(json.dumps(error_message, indent=4), content_type="application/json", status=500)
+
+    except ET.ParseError as e:
         error_message = {
             "error": f"XML Parsing Error: {e}",
             "content": xml_content
