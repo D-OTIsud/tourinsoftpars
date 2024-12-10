@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 app = Flask(__name__)
 
 # Default XML URL
-DEFAULT_XML_URL = "https://tp.deep-process.com"
+DEFAULT_XML_URL = "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/B2BC0524-ADC3-45D5-8A77-A0D70D2425B3"
 
 def xml_to_dict(element):
     """Recursive function to convert XML elements to a dictionary."""
