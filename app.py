@@ -4,20 +4,30 @@ import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 
-DEFAULT_XML_URL = "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/B2BC0524-ADC3-45D5-8A77-A0D70D2425B3"
+# Default XML URL
+DEFAULT_XML_URL = "https://tp.deep-process.com"
 
 def xml_to_dict(element):
     """Recursive function to convert XML elements to a dictionary."""
     result = {}
     for child in element:
-        if len(child):
-            result[child.tag] = xml_to_dict(child)  # Recursive call for nested elements
+        # Handle duplicate tags by storing them in a list
+        if child.tag in result:
+            if not isinstance(result[child.tag], list):
+                result[child.tag] = [result[child.tag]]
+            result[child.tag].append(xml_to_dict(child) if len(child) else child.text or "")
         else:
-            result[child.tag] = child.text or ""  # Handle empty text
+            result[child.tag] = xml_to_dict(child) if len(child) else child.text or ""
     return result
+
+@app.route('/')
+def index():
+    """Default route providing usage information."""
+    return jsonify({"message": "Welcome to the XML to JSON API!", "usage": "Use /convert endpoint to convert XML to JSON."})
 
 @app.route('/convert', methods=['GET'])
 def convert_to_json():
+    """Endpoint to convert XML to JSON."""
     # Use default XML URL or override with query parameter
     xml_url = request.args.get('url', DEFAULT_XML_URL)
     
