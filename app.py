@@ -41,27 +41,27 @@ def analyze():
                         },
                         "tarif": item.get("Tarif", "Non spécifié"),
                         "structure": {
-                            "name": item.get("Structure", {}).get("Name", "Unknown"),
-                            "email": item.get("Structure", {}).get("Email", "Unknown")
+                            "name": item.get("Structure", {}).get("Name", "Unknown") if item.get("Structure") else "Unknown",
+                            "email": item.get("Structure", {}).get("Email", "Unknown") if item.get("Structure") else "Unknown"
                         },
                         "classification": {
-                            "type": item.get("ClassificationType", {}).get("ThesLibelle", "Unknown"),
-                            "category": item.get("Classificationcategorie", {}).get("ThesLibelle", "Unknown")
+                            "type": item.get("ClassificationType", {}).get("ThesLibelle", "Unknown") if item.get("ClassificationType") else "Unknown",
+                            "category": item.get("Classificationcategorie", {}).get("ThesLibelle", "Unknown") if item.get("Classificationcategorie") else "Unknown"
                         },
                         "equipments": [
-                            equip.get("ThesLibelle", "Unknown") for equip in item.get("PrestationsEquipementss", [])
+                            equip.get("ThesLibelle", "Unknown") for equip in item.get("PrestationsEquipementss", []) if equip
                         ],
                         "proximity": [
-                            prox.get("ThesLibelle", "Unknown") for prox in item.get("PrestationProximites", [])
+                            prox.get("ThesLibelle", "Unknown") for prox in item.get("PrestationProximites", []) if prox
                         ],
                         "photos": [
-                            photo.get("Photo", {}).get("Url", "Unknown") for photo in item.get("Photos", [])
+                            photo.get("Photo", {}).get("Url", "Unknown") for photo in item.get("Photos", []) if photo
                         ],
                         "languages": [
-                            lang.get("ThesLibelle", "Unknown") for lang in item.get("LanguesParleess", [])
+                            lang.get("ThesLibelle", "Unknown") for lang in item.get("LanguesParleess", []) if lang
                         ],
                         "opening_periods": [
-                            period.get("Periode", "Unknown") for period in item.get("PeriodeOuvertures", [])
+                            period.get("Periode", "Unknown") for period in item.get("PeriodeOuvertures", []) if period
                         ]
                     })
 
