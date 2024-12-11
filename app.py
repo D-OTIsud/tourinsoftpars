@@ -15,22 +15,39 @@ def home():
 @app.route('/analyze')
 def analyze():
     try:
-        # Fetch the JSON data
+        # Fetch the JSON data from the API
         response = requests.get(API_URL)
         response.raise_for_status()
         data = response.json()
 
-        # Extract SyndicObjectName
-        syndic_names = [item.get("SyndicObjectName", "Unknown") for item in data]
-        syndic_count = len(syndic_names)
+        # Analyze the structure of the returned data
+        if isinstance(data, list):
+            # If data is a list, process each item
+            syndic_names = [
+                item.get("SyndicObjectName", "Unknown") if isinstance(item, dict) else str(item)
+                for item in data
+            ]
+            syndic_count = len(syndic_names)
+        elif isinstance(data, dict):
+            # If data is a dictionary, assume it contains a list under a key (e.g., "items")
+            syndic_names = [
+                item.get("SyndicObjectName", "Unknown") for item in data.get("items", [])
+            ]
+            syndic_count = len(syndic_names)
+        else:
+            # Handle unexpected data structures
+            syndic_names = ["Unexpected data structure"]
+            syndic_count = 0
 
-        # Return analysis in JSON format
+        # Return the analysis as JSON
         return jsonify({
             "count": syndic_count,
             "names": syndic_names
         })
     except Exception as e:
+        # Return error message if something goes wrong
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
+    # Run the Flask app, accessible on all network interfaces
     app.run(debug=True, host='0.0.0.0', port=5000)
