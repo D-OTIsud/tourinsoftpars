@@ -9,7 +9,7 @@ API_URL = "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com
 @app.route('/')
 def home():
     return jsonify({
-        "message": "Welcome to the SyndicObjectName Analyzer! Use /analyze to get the data analysis."
+        "message": "Bienvenue dans l'analyseur SyndicObjectName ! Utilisez /analyze pour obtenir l'analyse des données."
     })
 
 @app.route('/analyze')
@@ -33,11 +33,11 @@ def analyze():
             syndic_names = []
             syndic_count = 0
 
-        # Return the analysis
+        # Return the analysis with ensure_ascii=False
         return jsonify({
             "count": syndic_count,
             "names": syndic_names
-        })
+        }, ensure_ascii=False)
     except Exception as e:
         # Handle any errors that occur
         return jsonify({"error": str(e)}), 500
