@@ -65,13 +65,13 @@ def analyze():
                         ]
                     })
 
-        # Return the structured data
-        response_json = json.dumps({"count": len(structured_data), "data": structured_data}, ensure_ascii=False)
+        # Return the structured data with indentation
+        response_json = json.dumps({"count": len(structured_data), "data": structured_data}, ensure_ascii=False, indent=4)
         return Response(response_json, content_type="application/json")
     except Exception as e:
         # Handle any errors that occur
         error_response = {"error": str(e)}
-        return Response(json.dumps(error_response, ensure_ascii=False), content_type="application/json")
+        return Response(json.dumps(error_response, ensure_ascii=False, indent=4), content_type="application/json")
 
 if __name__ == '__main__':
     # Run the Flask app, accessible on all network interfaces
