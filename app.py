@@ -1,5 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, Response
 import requests
+import json  # Import the standard Python JSON module
 
 app = Flask(__name__)
 
@@ -33,14 +34,17 @@ def analyze():
             syndic_names = []
             syndic_count = 0
 
-        # Return the analysis with ensure_ascii=False
-        return jsonify({
+        # Create the JSON response using json.dumps to control encoding
+        response_data = {
             "count": syndic_count,
             "names": syndic_names
-        }, ensure_ascii=False)
+        }
+        response_json = json.dumps(response_data, ensure_ascii=False)
+        return Response(response_json, content_type="application/json")
     except Exception as e:
         # Handle any errors that occur
-        return jsonify({"error": str(e)}), 500
+        error_response = {"error": str(e)}
+        return Response(json.dumps(error_response, ensure_ascii=False), content_type="application/json")
 
 if __name__ == '__main__':
     # Run the Flask app, accessible on all network interfaces
