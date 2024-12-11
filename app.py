@@ -20,32 +20,26 @@ def analyze():
         response.raise_for_status()
         data = response.json()
 
-        # Analyze the structure of the returned data
-        if isinstance(data, list):
-            # If data is a list, process each item
+        # Ensure the data contains the 'value' key and it is a list
+        if isinstance(data, dict) and "value" in data:
+            items = data["value"]  # Access the 'value' list
+            # Extract SyndicObjectName from each item in the list
             syndic_names = [
-                item.get("SyndicObjectName", "Unknown") if isinstance(item, dict) else str(item)
-                for item in data
-            ]
-            syndic_count = len(syndic_names)
-        elif isinstance(data, dict):
-            # If data is a dictionary, assume it contains a list under a key (e.g., "items")
-            syndic_names = [
-                item.get("SyndicObjectName", "Unknown") for item in data.get("items", [])
+                item.get("SyndicObjectName", "Unknown") for item in items if isinstance(item, dict)
             ]
             syndic_count = len(syndic_names)
         else:
-            # Handle unexpected data structures
-            syndic_names = ["Unexpected data structure"]
+            # Handle unexpected structure
+            syndic_names = []
             syndic_count = 0
 
-        # Return the analysis as JSON
+        # Return the analysis
         return jsonify({
             "count": syndic_count,
             "names": syndic_names
         })
     except Exception as e:
-        # Return error message if something goes wrong
+        # Handle any errors that occur
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
