@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, Response
 import requests
-import json  # Import the standard Python JSON module
+import json
 
 app = Flask(__name__)
 
@@ -22,24 +22,51 @@ def analyze():
         data = response.json()
 
         # Ensure the data contains the 'value' key and it is a list
+        structured_data = []
         if isinstance(data, dict) and "value" in data:
             items = data["value"]  # Access the 'value' list
-            # Extract SyndicObjectName from each item in the list
-            syndic_names = [
-                item.get("SyndicObjectName", "Unknown") for item in items if isinstance(item, dict)
-            ]
-            syndic_count = len(syndic_names)
-        else:
-            # Handle unexpected structure
-            syndic_names = []
-            syndic_count = 0
+            for item in items:
+                if isinstance(item, dict):
+                    structured_data.append({
+                        "name": item.get("SyndicObjectName", "Unknown"),
+                        "type": item.get("ObjectTypeName", "Unknown"),
+                        "commune": item.get("Commune", "Unknown"),
+                        "address": {
+                            "line": item.get("Adresse1", "Unknown"),
+                            "postal_code": item.get("CodePostal", "Unknown")
+                        },
+                        "location": {
+                            "latitude": item.get("GmapLatitude", "Unknown"),
+                            "longitude": item.get("GmapLongitude", "Unknown")
+                        },
+                        "tarif": item.get("Tarif", "Non spécifié"),
+                        "structure": {
+                            "name": item.get("Structure", {}).get("Name", "Unknown"),
+                            "email": item.get("Structure", {}).get("Email", "Unknown")
+                        },
+                        "classification": {
+                            "type": item.get("ClassificationType", {}).get("ThesLibelle", "Unknown"),
+                            "category": item.get("Classificationcategorie", {}).get("ThesLibelle", "Unknown")
+                        },
+                        "equipments": [
+                            equip.get("ThesLibelle", "Unknown") for equip in item.get("PrestationsEquipementss", [])
+                        ],
+                        "proximity": [
+                            prox.get("ThesLibelle", "Unknown") for prox in item.get("PrestationProximites", [])
+                        ],
+                        "photos": [
+                            photo.get("Photo", {}).get("Url", "Unknown") for photo in item.get("Photos", [])
+                        ],
+                        "languages": [
+                            lang.get("ThesLibelle", "Unknown") for lang in item.get("LanguesParleess", [])
+                        ],
+                        "opening_periods": [
+                            period.get("Periode", "Unknown") for period in item.get("PeriodeOuvertures", [])
+                        ]
+                    })
 
-        # Create the JSON response using json.dumps to control encoding
-        response_data = {
-            "count": syndic_count,
-            "names": syndic_names
-        }
-        response_json = json.dumps(response_data, ensure_ascii=False)
+        # Return the structured data
+        response_json = json.dumps({"count": len(structured_data), "data": structured_data}, ensure_ascii=False)
         return Response(response_json, content_type="application/json")
     except Exception as e:
         # Handle any errors that occur
