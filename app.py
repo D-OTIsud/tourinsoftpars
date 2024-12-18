@@ -4,27 +4,25 @@ import json
 
 app = Flask(__name__)
 
-# API URL
-API_URL = "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/B2BC0524-ADC3-45D5-8A77-A0D70D2425B3?format=json"
+# API URLs
+CATEGORIES = {
+    "DECOUVERTE": "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/39BAB676-97BB-4C78-9D7D-28DD43753314",
+    "Hébergement": "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/B2BC0524-ADC3-45D5-8A77-A0D70D2425B3",
+    "INFORMATION & SERVICE TOURISTIQUE": "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/5A285C91-D35F-4873-8F3C-A032ABB418D3",
+    "LOISIR/PLEIN AIR": "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/C32A0407-A66F-48D5-8DB0-618FDF03F49F",
+    "Restauration": "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/CC575EE1-AA90-49BD-B23F-1935C4B151CD",
+    "TRANSPORT": "https://api-v3.tourinsoft.com/api/syndications/reunion.tourinsoft.com/15DD031A-CAAC-4E1B-AA75-5F65D7A437E8"
+}
 
-@app.route('/')
-def home():
-    return jsonify({
-        "message": "Bienvenue dans l'analyseur SyndicObjectName ! Utilisez /analyze pour obtenir l'analyse des données."
-    })
-
-@app.route('/analyze')
-def analyze():
+def fetch_and_structure_data(api_url):
     try:
-        # Fetch the JSON data from the API
-        response = requests.get(API_URL)
+        response = requests.get(api_url)
         response.raise_for_status()
         data = response.json()
 
-        # Ensure the data contains the 'value' key and it is a list
         structured_data = []
         if isinstance(data, dict) and "value" in data:
-            items = data["value"]  # Access the 'value' list
+            items = data["value"]
             for item in items:
                 if isinstance(item, dict):
                     structured_data.append({
@@ -64,15 +62,26 @@ def analyze():
                             period.get("Periode", "Unknown") for period in item.get("PeriodeOuvertures", []) if period
                         ]
                     })
-
-        # Return the structured data with indentation
-        response_json = json.dumps({"count": len(structured_data), "data": structured_data}, ensure_ascii=False, indent=4)
-        return Response(response_json, content_type="application/json")
+        return structured_data
     except Exception as e:
-        # Handle any errors that occur
-        error_response = {"error": str(e)}
-        return Response(json.dumps(error_response, ensure_ascii=False, indent=4), content_type="application/json")
+        return {"error": str(e)}
+
+@app.route('/')
+def home():
+    return jsonify({
+        "message": "Bienvenue dans l'analyseur de données Tourinsoft ! Utilisez /analyze pour obtenir l'analyse des données."
+    })
+
+@app.route('/analyze')
+def analyze():
+    aggregated_data = {}
+
+    for category, api_url in CATEGORIES.items():
+        data = fetch_and_structure_data(api_url)
+        aggregated_data[category] = data
+
+    response_json = json.dumps({"categories": aggregated_data}, ensure_ascii=False, indent=4)
+    return Response(response_json, content_type="application/json")
 
 if __name__ == '__main__':
-    # Run the Flask app, accessible on all network interfaces
     app.run(debug=True, host='0.0.0.0', port=5000)
