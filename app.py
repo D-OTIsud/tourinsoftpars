@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 import requests
 import json
 
@@ -69,18 +69,42 @@ def fetch_and_structure_data(api_url):
 @app.route('/')
 def home():
     return jsonify({
-        "message": "Bienvenue dans l'analyseur de données Tourinsoft ! Utilisez /analyze pour obtenir l'analyse des données."
+        "message": "Bienvenue dans l'analyseur de données Tourinsoft ! Utilisez /analyze pour obtenir l'analyse des données ou appelez une catégorie individuelle."
     })
 
 @app.route('/analyze')
 def analyze():
+    categories = request.args.getlist('category')
     aggregated_data = {}
+    total_count = 0
 
-    for category, api_url in CATEGORIES.items():
+    if categories:
+        selected_categories = {cat: CATEGORIES[cat] for cat in categories if cat in CATEGORIES}
+    else:
+        selected_categories = CATEGORIES
+
+    for category, api_url in selected_categories.items():
         data = fetch_and_structure_data(api_url)
-        aggregated_data[category] = data
+        if isinstance(data, list):
+            count = len(data)
+            total_count += count
+        else:
+            count = 0
+        aggregated_data[category] = {"count": count, "data": data}
 
-    response_json = json.dumps({"categories": aggregated_data}, ensure_ascii=False, indent=4)
+    response_json = json.dumps({"total_count": total_count, "categories": aggregated_data}, ensure_ascii=False, indent=4)
+    return Response(response_json, content_type="application/json")
+
+@app.route('/analyze/<category>')
+def analyze_category(category):
+    if category not in CATEGORIES:
+        return jsonify({"error": "Invalid category"}), 400
+
+    api_url = CATEGORIES[category]
+    data = fetch_and_structure_data(api_url)
+    count = len(data) if isinstance(data, list) else 0
+
+    response_json = json.dumps({"category": category, "count": count, "data": data}, ensure_ascii=False, indent=4)
     return Response(response_json, content_type="application/json")
 
 if __name__ == '__main__':
